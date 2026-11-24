@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ask SRT</title>
+  <link rel="stylesheet" href="popup.css" />
+  <link rel="stylesheet" href="si.css" />
+</head>
+<body class="light">
+  <div class="app-shell">
+    <!-- Top Header -->
+    <header class="topbar">
+      <div class="brand">
+        <img src="icons/icon48.png" alt="Ask SRT Logo" class="brand-logo" />
+        <div class="brand-meta">
+          <h1>Ask SRT</h1>
+          <span id="captureStatus" class="status-pill">Scanning screen...</span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button id="siToggle" class="si-toggle" aria-pressed="false" title="SI mode: full chat with file uploads">SI</button>
+        <button id="newChatBtn" class="icon-btn text-btn" title="Start a New Chat">+ New</button>
+        <button id="historyBtn" class="icon-btn text-btn" title="View Saved Chats">History</button>
+        <button id="githubBtn" class="icon-btn text-btn" title="Connect GitHub and push files">Git</button>
+        <button id="settingsBtn" class="icon-btn" title="Preferences">⚙️</button>
+        <button id="themeBtn" class="icon-btn" title="Switch Light / Dark Mode">🌙</button>
+      </div>
+    </header>
+
+    <!-- Page Context Bar -->
+    <div class="page-bar">
+      <span id="pageTitle" class="page-title" title="">Reading active tab...</span>
+      <span id="pageStats" class="page-stats">0 words • 0 links</span>
+    </div>
+
+    <!-- Main Answer & Results Area (ON TOP) -->
+    <main id="answersContainer" class="answers-area">
+      <div id="emptyState" class="empty-state">
+        <img src="icons/icon128.png" alt="Ask SRT" class="empty-icon" />
+        <h2>Screen Captured &amp; Ready</h2>
+        <p>Type any question or keyword in the chat box below. I'll answer in simple, clear human language.</p>
+        <div class="quick-chips">
+          <button class="chip" data-q="Summarize this page in simple words">Summarize page</button>
+          <button class="chip" data-q="What are the most important details here?">Key details</button>
+          <button class="chip" data-q="List the important links on this page">Important links</button>
+        </div>
+      </div>
+    </main>
+
+    <!-- SI Mode Chat Area -->
+    <main id="siContainer" class="si-area hidden">
+      <div id="siMessages" class="si-messages"></div>
+    </main>
+
+    <!-- History Drawer View -->
+    <section id="historyView" class="drawer-view hidden">
+      <div class="drawer-header">
+        <h2>Saved Chat History</h2>
+        <div class="drawer-actions">
+          <button id="clearAllHistoryBtn" class="danger-link">Clear All</button>
+          <button id="closeHistoryBtn" class="close-btn">✕</button>
+        </div>
+      </div>
+      <div id="historyList" class="history-list"></div>
+    </section>
+
+    <!-- Preferences Drawer View -->
+    <section id="settingsView" class="drawer-view hidden">
+      <div class="drawer-header">
+        <h2>Preferences</h2>
+        <button id="closeSettingsBtn" class="close-btn">✕</button>
+      </div>
+      <div class="settings-body">
+        <label class="toggle-row">
+          <div>
+            <strong>Auto-Speak Answers</strong>
+            <small>Read every answer aloud automatically</small>
+          </div>
+          <input type="checkbox" id="autoSpeakToggle" />
+        </label>
+
+        <label class="toggle-row">
+          <div>
+            <strong>Include Hyperlinks in Scan</strong>
+            <small>Capture page links alongside screen text</small>
+          </div>
+          <input type="checkbox" id="includeLinksToggle" checked />
+        </label>
+
+        <div class="settings-footer">
+          <button id="rescanBtn" class="secondary-btn">↻ Rescan Current Screen</button>
+          <button id="clearCacheBtn" class="secondary-btn danger-outline">Clear Stored Page Cache</button>
+        </div>
+        <p id="settingsFeedback" class="feedback-msg"></p>
+      </div>
+    </section>
+
+    <!-- GitHub Drawer View -->
+    <section id="githubView" class="drawer-view hidden">
+      <div class="drawer-header">
+        <h2>GitHub</h2>
+        <button id="closeGithubBtn" class="close-btn">✕</button>
+      </div>
+      <div class="settings-body">
+        <p id="ghStatus" class="gh-status">Not connected</p>
+
+        <label class="gh-field">
+          <span>Personal access token (repo scope)</span>
+          <input id="ghToken" type="password" placeholder="ghp_…" autocomplete="off" spellcheck="false" />
+        </label>
+        <div class="gh-row">
+          <button id="ghConnectBtn" class="secondary-btn">Connect</button>
+          <button id="ghForgetBtn" class="secondary-btn danger-outline">Forget token</button>
+        </div>
+
+        <label class="gh-field">
+          <span>Repository (owner/name)</span>
+          <input id="ghRepo" type="text" placeholder="subrato/my-app" spellcheck="false" />
+        </label>
+        <label class="gh-field">
+          <span>Branch</span>
+          <input id="ghBranch" type="text" placeholder="main" spellcheck="false" />
+        </label>
+
+        <div class="gh-section">
+          <strong>Edit a repo file</strong>
+          <label class="gh-field">
+            <span>File path</span>
+            <input id="ghPath" type="text" placeholder="src/app.js" spellcheck="false" />
+          </label>
+          <button id="ghLoadFileBtn" class="secondary-btn">Load file into chat</button>
+        </div>
+
+        <div class="gh-section">
+          <strong>Whole repository</strong>
+          <button id="ghLoadAllBtn" class="secondary-btn">Edit every file at once (load all)</button>
+          <button id="ghDeleteAllBtn" class="secondary-btn danger-outline">Delete every file in the branch</button>
+        </div>
+
+        <div class="gh-section">
+          <strong>Push files</strong>
+          <label class="gh-field">
+            <span>Folder in repo (optional)</span>
+            <input id="ghFolder" type="text" placeholder="site/" spellcheck="false" />
+          </label>
+          <button id="ghPushFilesBtn" class="secondary-btn">Push files from last reply</button>
+          <label class="gh-field">
+            <span>Or upload a ZIP and push every file</span>
+            <input id="ghZip" type="file" accept=".zip,application/zip" />
+          </label>
+        </div>
+
+        <p id="ghFeedback" class="feedback-msg"></p>
+      </div>
+    </section>
+
+    <!-- Chat Input Box (BELOW) -->
+    <footer class="chat-footer">
+      <div id="pendingFiles" class="pending-files"></div>
+      <div class="input-box">
+        <button id="attachBtn" class="attach-btn hidden" title="Attach files: text, code, PDF, images">📎</button>
+        <textarea id="questionInput" rows="1" placeholder="Ask anything about this screen..."></textarea>
+        <button id="askBtn" class="send-btn" title="Ask SRT">
+          <span>Ask</span>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
+        </button>
+      </div>
+    </footer>
+
+    <!-- Live artifact preview (opens next to the chat) -->
+    <section id="previewPane" class="preview-pane hidden">
+      <div class="preview-head">
+        <span class="preview-dot"></span>
+        <strong id="previewTitle">preview.html</strong>
+        <button id="previewReload" class="mini-btn" title="Reload preview">↻</button>
+        <button id="previewOpenTab" class="mini-btn" title="Open in a new tab">↗</button>
+        <button id="previewDownload" class="mini-btn" title="Download this page">⬇</button>
+        <button id="previewClose" class="mini-btn" title="Close preview">✕</button>
+      </div>
+      <iframe id="previewFrame" title="Live preview" sandbox="allow-scripts allow-forms allow-modals allow-popups"></iframe>
+    </section>
+  </div>
+
+  <input type="file" id="fileInput" multiple hidden />
+  <script src="filegen.js"></script>
+  <script src="preview.js"></script>
+  <script src="si.js"></script>
+  <script src="popup.js"></script>
+  <script src="github.js"></script>
+</body>
+</html>
